@@ -65,6 +65,12 @@ Twitter API v1 の `GET statuses/home_timeline` APIを叩き、タイムライ�
 
 `Input command.: users_tweets id:7080152 max_results:20`  
 
+#### **users_mentions**
+
+`GET /2/users/:id/mentions` APIを叩き、指定したユーザに言及するツイートを表示します。
+
+`Input command.: users_mentions id:7080152 max_results:20`  
+
 #### **post_tweets**
 
 `POST /2/tweets` APIを叩き、ツイートを投稿します。
