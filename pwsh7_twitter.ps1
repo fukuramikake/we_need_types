@@ -206,6 +206,25 @@ Class Command {
                     [Display]::DisplayError($statusCode, $json)
                 }
             }
+
+            "users_mentions" {
+                $result = $api.UsersMentions($commands)
+                [System.Net.HttpStatusCode]$statusCode = $result["statusCode"]
+                $json = $result["body"]
+    
+                if ($statusCode -eq [System.Net.HttpStatusCode]::OK) {
+                    [Timeline]$timeline = [System.Text.Json.JsonSerializer]::Deserialize($json, [Timeline], [Helper]::GetJsonSerializerOptions())
+                    if ($null -ne $timeline.data) {                
+                        [Display]::DisplayTimeline($timeline)
+                    }
+                    else {
+                        [Display]::DisplayErrors($timeline.errors)
+                    }
+                }
+                else {
+                    [Display]::DisplayError($statusCode, $json)
+                }
+            }
     
             "post_tweets" {
                 $result = $api.PostTweets($commands)
@@ -700,6 +719,38 @@ class TwitterApi {
         return $this.Request.GetRequest([Endpoint]::users + "/" + $id + "/tweets" , $this.AuthParams(), $params)
     }
 
+    [Hashtable] UsersMentions([string[]]$commands) {
+        $params = @{
+            "expansions"   = "attachments.poll_ids,attachments.media_keys,author_id,entities.mentions.username,geo.place_id,in_reply_to_user_id,referenced_tweets.id,referenced_tweets.id.author_id";
+            "place.fields" = "contained_within,country,country_code,full_name,geo,id,name,place_type";
+            "poll.fields"  = "duration_minutes,end_datetime,id,options,voting_status";
+            "tweet.fields" = "attachments,author_id,context_annotations,conversation_id,created_at,entities,geo,id,in_reply_to_user_id,lang,public_metrics,possibly_sensitive,referenced_tweets,reply_settings,source,text,withheld"
+            "user.fields"  = "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld"
+        }
+        [string]$id = $null
+        if ($commands.Length -gt 1) {
+            for ($index = 1; $index -lt $commands.Length; $index++) {
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if ($p.Length -eq 2) {
+                    switch (([string]$p[0]).ToLower()) {
+                        "id" {
+                            $id = $p[1]
+                        }
+                        "max_results" {
+                            $i = $p[1] -as [Int64]
+                            if ($i) {
+                                $params["max_results"] = $i
+                            }
+                        }
+                        default {
+                            $params[[string]$p] = $p[1]
+                        }
+                    }
+                }
+            }
+        }
+        return $this.Request.GetRequest([Endpoint]::users + "/" + $id + "/mentions" , $this.AuthParams(), $params)
+    }
 
     [Hashtable] PostTweets([string[]]$commands) {
         $entity = [PostTweets]::new()
