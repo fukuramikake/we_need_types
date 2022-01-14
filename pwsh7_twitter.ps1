@@ -709,6 +709,15 @@ class TwitterApi {
                                 $params["max_results"] = $i
                             }
                         }
+                        "username" {
+                            $result = $this.Request.GetRequest([Endpoint]::byUsername + "/" + $p[1], $this.AuthParams(), @{})
+                            if ($result["statusCode"] -eq [System.Net.HttpStatusCode]::OK) {
+                                [UsersResponse]$user = [System.Text.Json.JsonSerializer]::Deserialize($result["body"], [UsersResponse], [Helper]::GetJsonSerializerOptions())
+                                if ($null -ne $user.data) {                
+                                    $id = $user.data.id
+                                }
+                            }
+                        }
                         default {
                             $params[[string]$p] = $p[1]
                         }
@@ -740,6 +749,15 @@ class TwitterApi {
                             $i = $p[1] -as [Int64]
                             if ($i) {
                                 $params["max_results"] = $i
+                            }
+                        }
+                        "username" {
+                            $result = $this.Request.GetRequest([Endpoint]::byUsername + "/" + $p[1], $this.AuthParams(), @{})
+                            if ($result["statusCode"] -eq [System.Net.HttpStatusCode]::OK) {
+                                [UsersResponse]$user = [System.Text.Json.JsonSerializer]::Deserialize($result["body"], [UsersResponse], [Helper]::GetJsonSerializerOptions())
+                                if ($null -ne $user.data) {                
+                                    $id = $user.data.id
+                                }
                             }
                         }
                         default {
