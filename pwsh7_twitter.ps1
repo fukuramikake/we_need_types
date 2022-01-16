@@ -176,7 +176,7 @@ Class Command {
                 if ($statusCode -eq [System.Net.HttpStatusCode]::OK) {
                     [UsersResponse]$user = [System.Text.Json.JsonSerializer]::Deserialize($json, [UsersResponse], [Helper]::GetJsonSerializerOptions())
                     if ($null -ne $user.data) {                
-                        [Display]::DisplayUser($user)
+                        [Display]::DisplayUser($user.data)
                     }
                     else {
                         [Display]::DisplayErrors($user.errors)
@@ -248,6 +248,28 @@ Class Command {
                 if ($statusCode -eq [System.Net.HttpStatusCode]::OK -or $statusCode -eq [System.Net.HttpStatusCode]::Accepted -or $statusCode -eq [System.Net.HttpStatusCode]::NoContent) {
                     [DeleteTweetsResponse]$response = [System.Text.Json.JsonSerializer]::Deserialize($json, [DeleteTweetsResponse], [Helper]::GetJsonSerializerOptions())
                     Write-Host($response.data.deleted) -ForegroundColor DarkMagenta
+                }
+                else {
+                    [Display]::DisplayError($statusCode, $json)
+                }    
+            }
+
+            "get_retweeted_by" {
+                $result = $api.GetRetweetedBy($commands)
+                [System.Net.HttpStatusCode]$statusCode = $result["statusCode"]
+                $json = $result["body"]
+
+                if ($statusCode -eq [System.Net.HttpStatusCode]::OK -or $statusCode) {
+                    [RetweetedByResponse]$response = [System.Text.Json.JsonSerializer]::Deserialize($json, [RetweetedByResponse], [Helper]::GetJsonSerializerOptions())
+                    if ($null -ne $response.data) {
+                        foreach ($user in $response.data) {
+                            [Display]::DisplayUser($user)
+                        }
+                        Write-Host("result_count:" + $response.meta.result_count) -ForegroundColor DarkMagenta
+                    }
+                    else {
+                        [Display]::DisplayErrors($timeline.errors)
+                    }
                 }
                 else {
                     [Display]::DisplayError($statusCode, $json)
@@ -838,6 +860,31 @@ class TwitterApi {
         return $this.Request.DeleteRequest([Endpoint]::tweets + "/" + $id, $this.AuthParams())
     }
 
+    [Hashtable] GetRetweetedBy([string[]]$commands) {
+        $params = @{
+            #            "expansions"   = "pinned_tweet_id";
+            "tweet.fields" = "attachments,author_id,context_annotations,conversation_id,created_at,entities,geo,id,in_reply_to_user_id,lang,non_public_metrics,public_metrics,possibly_sensitive,referenced_tweets,reply_settings,source,text,withheld";
+            "user.fields"  = "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld";
+        }
+        [string]$id = $null
+        if ($commands.Length -gt 1) {
+            for ($index = 1; $index -lt $commands.Length; $index++) {
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if ($p.Length -eq 2) {
+                    switch (([string]$p[0]).ToLower()) {
+                        "id" {
+                            $id = $p[1]
+                        }
+                        default {
+                            $params[[string]$p] = $p[1]
+                        }
+                    }
+                }
+            }
+        }
+        return $this.Request.GetRequest([Endpoint]::tweets + "/" + $id + "/retweeted_by", $this.AuthParams(), $params)
+    }
+
     [Hashtable] PostRetweets([string[]]$commands) {
         $entity = [PostRetweets]::new()
         [string]$tweetId = $null
@@ -847,6 +894,9 @@ class TwitterApi {
                 if ($p.Length -eq 2) {
                     switch (([string]$p[0]).ToLower()) {
                         "tweet_id" {
+                            $tweetId = $p[1]
+                        }
+                        "id" {
                             $tweetId = $p[1]
                         }
                     }
@@ -868,6 +918,9 @@ class TwitterApi {
                         "source_tweet_id" {
                             $sourceTweetId = $p[1]
                         }
+                        "id" {
+                            $sourceTweetId = $p[1]
+                        }
                     }
                 }
             }
@@ -884,6 +937,9 @@ class TwitterApi {
                 if ($p.Length -eq 2) {
                     switch (([string]$p[0]).ToLower()) {
                         "tweet_id" {
+                            $tweetId = $p[1]
+                        }
+                        "id" {
                             $tweetId = $p[1]
                         }
                     }
@@ -903,6 +959,9 @@ class TwitterApi {
                 if ($p.Length -eq 2) {
                     switch (([string]$p[0]).ToLower()) {
                         "tweet_id" {
+                            $tweetId = $p[1]
+                        }
+                        "id" {
                             $tweetId = $p[1]
                         }
                     }
@@ -953,15 +1012,15 @@ class Display {
         Write-Host($tweet.data.created_at.LocalDateTime.ToString() + " from " + $tweet.data.source + " id:" + $tweet.data.id) -ForegroundColor DarkGray
     }
 
-    static [void] DisplayUser([UsersResponse]$user) {
-        Write-Host($user.data.name + " @" + $user.data.username) -ForegroundColor Cyan
-        Write-Host("location:" + $user.data.location)
-        Write-Host("description:" + $user.data.description)
-        Write-Host("profile_image_url:" + $user.data.profile_image_url)
-        if ($null -ne $user.data.pinned_tweet_id) {
-            Write-Host("pinned_tweet_id:" + $user.data.pinned_tweet_id)
+    static [void] DisplayUser([User]$user) {
+        Write-Host($user.name + " @" + $user.username) -ForegroundColor Cyan
+        Write-Host("location:" + $user.location)
+        Write-Host("description:" + $user.description)
+        Write-Host("profile_image_url:" + $user.profile_image_url)
+        if ($null -ne $user.pinned_tweet_id) {
+            Write-Host("pinned_tweet_id:" + $user.pinned_tweet_id)
         }
-        Write-Host("created_at:" + $user.data.created_at.LocalDateTime.ToString() + " / id:" + $user.data.id) -ForegroundColor DarkGray        
+        Write-Host("created_at:" + $user.created_at.LocalDateTime.ToString() + " / id:" + $user.id) -ForegroundColor DarkGray        
     }
 
     static [void] DisplayTimeline([Timeline]$timeline) {
@@ -990,7 +1049,6 @@ class Display {
             }
         }
     }
-
 
     static [void] DisplayError([System.Net.HttpStatusCode]$statusCode, [string]$json) {
         if ($statusCode -eq [System.Net.HttpStatusCode]::NotFound) {
@@ -1466,6 +1524,11 @@ class UsersResponseInclude {
     [TimelineDatum]$tweets
 }
 
+class RetweetedByResponse {
+    [User[]]$data
+    [Meta]$meta
+    [ErrorResponseError[]]$errors
+}
 
 class Helper {
     static [int] GetTimeStamp() {

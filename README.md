@@ -97,25 +97,31 @@ usernameが指定された場合、事前に `GET /2/users/by/username/:username
 
 #### **post_retweets**
 
-`POST /2/users/:id/retweets` APIを叩き、リツイートします。このAPIはキー名が `tweet_id` です。
+`POST /2/users/:id/retweets` APIを叩き、リツイートします。このAPIはキー名が `tweet_id` です。が、 `id` でも指定可能です。  
 
 `Input command.: post_retweets tweet_id:1234567890123456789`  
 
 #### **delete_retweets**
 
-`DELETE /2/users/:id/retweets/:source_tweet_id` APIを叩き、リツイートします。このAPIはキー名が `source_tweet_id` です。
+`DELETE /2/users/:id/retweets/:source_tweet_id` APIを叩き、リツイートします。このAPIはキー名が `source_tweet_id` です。が、 `id` でも指定可能です。  
 
 `Input command.: delete_retweets source_tweet_id:1234567890123456789`  
 
+#### **get_retweeted_by**
+
+`GET /2/tweets/:id/retweeted_by` APIを叩き、該当のツイートをリツイートしたユーザを一覧表示します。あれば件数(result_count)も表示します。  
+
+`Input command.: get_retweeted_by id:1234567890123456789`  
+
 #### **post_likes**
 
-`POST /2/users/:id/likes` APIを叩き、ファボします。このAPIはキー名が `tweet_id` です。
+`POST /2/users/:id/likes` APIを叩き、ファボします。このAPIはキー名が `tweet_id` です。が、 `id` でも指定可能です。  
 
 `Input command.: post_likes tweet_id:1234567890123456789`  
 
 #### **delete_likes**
 
-`DELETE /2/users/:id/likes/:tweet_id` APIを叩き、ファボを解除します。このAPIはキー名が `tweet_id` です。
+`DELETE /2/users/:id/likes/:tweet_id` APIを叩き、ファボを解除します。このAPIはキー名が `tweet_id` です。が、 `id` でも指定可能です。  
 
 `Input command.: delete_likes tweet_id:1234567890123456789`  
 
