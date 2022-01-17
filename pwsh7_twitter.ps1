@@ -207,6 +207,25 @@ Class Command {
                 }
             }
 
+            "users_liked_tweets" {
+                $result = $api.UsersLikedTweets($commands)
+                [System.Net.HttpStatusCode]$statusCode = $result["statusCode"]
+                $json = $result["body"]
+    
+                if ($statusCode -eq [System.Net.HttpStatusCode]::OK) {
+                    [Timeline]$timeline = [System.Text.Json.JsonSerializer]::Deserialize($json, [Timeline], [Helper]::GetJsonSerializerOptions())
+                    if ($null -ne $timeline.data) {                
+                        [Display]::DisplayTimeline($timeline)
+                    }
+                    else {
+                        [Display]::DisplayErrors($timeline.errors)
+                    }
+                }
+                else {
+                    [Display]::DisplayError($statusCode, $json)
+                }
+            }
+
             "users_mentions" {
                 $result = $api.UsersMentions($commands)
                 [System.Net.HttpStatusCode]$statusCode = $result["statusCode"]
@@ -274,6 +293,28 @@ Class Command {
                 else {
                     [Display]::DisplayError($statusCode, $json)
                 }    
+            }
+
+            "get_liking_users" {
+                $result = $api.GetLikingUsers($commands)
+                [System.Net.HttpStatusCode]$statusCode = $result["statusCode"]
+                $json = $result["body"]
+
+                if ($statusCode -eq [System.Net.HttpStatusCode]::OK -or $statusCode) {
+                    [RetweetedByResponse]$response = [System.Text.Json.JsonSerializer]::Deserialize($json, [RetweetedByResponse], [Helper]::GetJsonSerializerOptions())
+                    if ($null -ne $response.data) {
+                        foreach ($user in $response.data) {
+                            [Display]::DisplayUser($user)
+                        }
+                        Write-Host("result_count:" + $response.meta.result_count) -ForegroundColor DarkMagenta
+                    }
+                    else {
+                        [Display]::DisplayErrors($timeline.errors)
+                    }
+                }
+                else {
+                    [Display]::DisplayError($statusCode, $json)
+                }  
             }
     
             "post_retweets" {
@@ -750,6 +791,48 @@ class TwitterApi {
         return $this.Request.GetRequest([Endpoint]::users + "/" + $id + "/tweets" , $this.AuthParams(), $params)
     }
 
+    [Hashtable] UsersLikedTweets([string[]]$commands) {
+        $params = @{
+            "expansions"   = "attachments.poll_ids,attachments.media_keys,author_id,entities.mentions.username,geo.place_id,in_reply_to_user_id,referenced_tweets.id,referenced_tweets.id.author_id";
+            "place.fields" = "contained_within,country,country_code,full_name,geo,id,name,place_type";
+            "poll.fields"  = "duration_minutes,end_datetime,id,options,voting_status";
+            "tweet.fields" = "attachments,author_id,context_annotations,conversation_id,created_at,entities,geo,id,in_reply_to_user_id,lang,public_metrics,possibly_sensitive,referenced_tweets,reply_settings,source,text,withheld"
+            "user.fields"  = "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld"
+        }
+        [string]$id = $null
+        if ($commands.Length -gt 1) {
+            for ($index = 1; $index -lt $commands.Length; $index++) {
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if ($p.Length -eq 2) {
+                    switch (([string]$p[0]).ToLower()) {
+                        "id" {
+                            $id = $p[1]
+                        }
+                        "max_results" {
+                            $i = $p[1] -as [Int64]
+                            if ($i) {
+                                $params["max_results"] = $i
+                            }
+                        }
+                        "username" {
+                            $result = $this.Request.GetRequest([Endpoint]::byUsername + "/" + $p[1], $this.AuthParams(), @{})
+                            if ($result["statusCode"] -eq [System.Net.HttpStatusCode]::OK) {
+                                [UsersResponse]$user = [System.Text.Json.JsonSerializer]::Deserialize($result["body"], [UsersResponse], [Helper]::GetJsonSerializerOptions())
+                                if ($null -ne $user.data) {                
+                                    $id = $user.data.id
+                                }
+                            }
+                        }
+                        default {
+                            $params[[string]$p] = $p[1]
+                        }
+                    }
+                }
+            }
+        }
+        return $this.Request.GetRequest([Endpoint]::users + "/" + $id + "/liked_tweets" , $this.AuthParams(), $params)
+    }
+
     [Hashtable] UsersMentions([string[]]$commands) {
         $params = @{
             "expansions"   = "attachments.poll_ids,attachments.media_keys,author_id,entities.mentions.username,geo.place_id,in_reply_to_user_id,referenced_tweets.id,referenced_tweets.id.author_id";
@@ -883,6 +966,30 @@ class TwitterApi {
             }
         }
         return $this.Request.GetRequest([Endpoint]::tweets + "/" + $id + "/retweeted_by", $this.AuthParams(), $params)
+    }
+
+    [Hashtable] GetLikingUsers([string[]]$commands) {
+        $params = @{
+            "tweet.fields" = "attachments,author_id,context_annotations,conversation_id,created_at,entities,geo,id,in_reply_to_user_id,lang,non_public_metrics,public_metrics,possibly_sensitive,referenced_tweets,reply_settings,source,text,withheld";
+            "user.fields"  = "created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld";
+        }
+        [string]$id = $null
+        if ($commands.Length -gt 1) {
+            for ($index = 1; $index -lt $commands.Length; $index++) {
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if ($p.Length -eq 2) {
+                    switch (([string]$p[0]).ToLower()) {
+                        "id" {
+                            $id = $p[1]
+                        }
+                        default {
+                            $params[[string]$p] = $p[1]
+                        }
+                    }
+                }
+            }
+        }
+        return $this.Request.GetRequest([Endpoint]::tweets + "/" + $id + "/liking_users", $this.AuthParams(), $params)
     }
 
     [Hashtable] PostRetweets([string[]]$commands) {
