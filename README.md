@@ -125,3 +125,18 @@ usernameが指定された場合、事前に `GET /2/users/by/username/:username
 
 `Input command.: delete_likes tweet_id:1234567890123456789`  
 
+#### **get_liking_users**
+
+`GET /2/tweets/:id/liking_users` APIを叩き、該当のツイートをファボしたユーザを一覧表示します。あれば件数(result_count)も表示します。  
+
+`Input command.: get_liking_users id:1234567890123456789`  
+
+#### **users_liked_tweets**
+
+`GET /2/users/:id/liked_tweets` APIを叩き、指定したユーザがファボしたツイートを表示します。
+
+`Input command.: users_liked_tweets id:7080152 max_results:20`  
+
+usernameが指定された場合、事前に `GET /2/users/by/username/:username` APIを叩き、値があればidをセットします。こちらの方が使いやすいと思います。
+
+`Input command.: users_liked_tweets username:twitterjp max_results:20`  
