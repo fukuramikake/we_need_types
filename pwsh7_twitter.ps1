@@ -1468,7 +1468,7 @@ class Geo {
   
 class Coordinates {
     [string]$type
-    [double]$coordinates
+    [double[]]$coordinates
 } 
   
 class Url {
