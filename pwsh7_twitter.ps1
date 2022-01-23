@@ -172,7 +172,7 @@ Class Command {
                 $result = $api.ByUserName($commands)
                 [System.Net.HttpStatusCode]$statusCode = $result["statusCode"]
                 $json = $result["body"]
-    
+
                 if ($statusCode -eq [System.Net.HttpStatusCode]::OK) {
                     [UsersResponse]$user = [System.Text.Json.JsonSerializer]::Deserialize($json, [UsersResponse], [Helper]::GetJsonSerializerOptions())
                     if ($null -ne $user.data) {                
@@ -372,7 +372,37 @@ Class Command {
                     [Display]::DisplayError($statusCode, $json)
                 }    
             }
-    
+
+            "users_following" {
+                $result = $api.UsersFollowing($commands)
+                [System.Net.HttpStatusCode]$statusCode = $result["statusCode"]
+                $json = $result["body"]
+                
+                if ($statusCode -eq [System.Net.HttpStatusCode]::OK -or $statusCode -eq [System.Net.HttpStatusCode]::Created) {
+                    [FollowingResponse]$response = [System.Text.Json.JsonSerializer]::Deserialize($json, [FollowingResponse], [Helper]::GetJsonSerializerOptions())
+                    Write-Host($response.data.following) -ForegroundColor DarkMagenta
+                }
+                else {
+                    [Display]::DisplayError($statusCode, $json)
+                }
+
+            }
+
+            "delete_users_following" {
+                $result = $api.DeleteUsersFollowing($commands)
+                [System.Net.HttpStatusCode]$statusCode = $result["statusCode"]
+                $json = $result["body"]
+                
+                if ($statusCode -eq [System.Net.HttpStatusCode]::OK -or $statusCode -eq [System.Net.HttpStatusCode]::Created) {
+                    [FollowingResponse]$response = [System.Text.Json.JsonSerializer]::Deserialize($json, [FollowingResponse], [Helper]::GetJsonSerializerOptions())
+                    Write-Host($response.data.following) -ForegroundColor DarkMagenta
+                }
+                else {
+                    [Display]::DisplayError($statusCode, $json)
+                }
+
+            }
+
             default {
                 Write-Host "input valid command. ex) > home"
             }
@@ -1078,6 +1108,61 @@ class TwitterApi {
         return $this.Request.DeleteRequest([Endpoint]::users + "/" + $this.UserId + "/likes/" + $tweetId, $this.AuthParams())
     }
 
+    [Hashtable] UsersFollowing([string[]]$commands) {
+        $entity = [PostFollowing]::new()
+        [string]$target_user_id = $null
+        if ($commands.Length -gt 1) {
+            for ($index = 1; $index -lt $commands.Length; $index++) {
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if ($p.Length -eq 2) {
+                    switch (([string]$p[0]).ToLower()) {
+                        "target_user_id" {
+                            $target_user_id = $p[1]
+                        }
+                        "username" {
+                            $result = $this.Request.GetRequest([Endpoint]::byUsername + "/" + $p[1], $this.AuthParams(), @{})
+                            if ($result["statusCode"] -eq [System.Net.HttpStatusCode]::OK) {
+                                [UsersResponse]$user = [System.Text.Json.JsonSerializer]::Deserialize($result["body"], [UsersResponse], [Helper]::GetJsonSerializerOptions())
+                                if ($null -ne $user.data) {                
+                                    $target_user_id = $user.data.id
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $entity.target_user_id = $target_user_id
+        $json = [System.Text.Json.JsonSerializer]::Serialize($entity, [Helper]::GetJsonSerializerOptions())
+        return $this.Request.PostRequestJson([Endpoint]::users + "/" + $this.UserId + "/following", $this.AuthParams(), $json)
+    }
+
+    [Hashtable] DeleteUsersFollowing([string[]]$commands) {
+        [string]$target_user_id = $null
+        if ($commands.Length -gt 1) {
+            for ($index = 1; $index -lt $commands.Length; $index++) {
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if ($p.Length -eq 2) {
+                    switch (([string]$p[0]).ToLower()) {
+                        "target_user_id" {
+                            $target_user_id = $p[1]
+                        }
+                        "username" {
+                            $result = $this.Request.GetRequest([Endpoint]::byUsername + "/" + $p[1], $this.AuthParams(), @{})
+                            if ($result["statusCode"] -eq [System.Net.HttpStatusCode]::OK) {
+                                [UsersResponse]$user = [System.Text.Json.JsonSerializer]::Deserialize($result["body"], [UsersResponse], [Helper]::GetJsonSerializerOptions())
+                                if ($null -ne $user.data) {                
+                                    $target_user_id = $user.data.id
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $this.Request.DeleteRequest([Endpoint]::users + "/" + $this.UserId + "/following/" + $target_user_id, $this.AuthParams())
+    }
+
 }
 
 class Display {
@@ -1621,6 +1706,19 @@ class LikesResponseData {
     [bool]$liked
 }
 
+class PostFollowing {
+    [string]$target_user_id
+}
+
+class FollowingResponse {
+    [FollowingResponseData]$data
+}
+
+class FollowingResponseData {
+    [bool]$following
+    [bool]$pendig_follow
+}
+
 class UsersResponse {
     [User]$data
     [UsersResponseInclude]$includes
@@ -1628,7 +1726,7 @@ class UsersResponse {
 }
 
 class UsersResponseInclude {
-    [TimelineDatum]$tweets
+    [TimelineDatum[]]$tweets
 }
 
 class RetweetedByResponse {

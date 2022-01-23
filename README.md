@@ -140,3 +140,23 @@ usernameが指定された場合、事前に `GET /2/users/by/username/:username
 usernameが指定された場合、事前に `GET /2/users/by/username/:username` APIを叩き、値があればidをセットします。こちらの方が使いやすいと思います。
 
 `Input command.: users_liked_tweets username:twitterjp max_results:20`  
+
+#### **users_following**
+
+`POST /2/users/:id/following` APIを叩き、指定ユーザをフォローします。
+
+`Input command.: users_following target_user_id:7080152`  
+
+usernameが指定された場合、事前に `GET /2/users/by/username/:username` APIを叩き、値があればidをセットします。こちらの方が使いやすいと思います。
+
+`Input command.: users_following username:twitterjp`  
+
+#### **delete_users_following**
+
+`DELETE /2/users/:source_user_id/following/:target_user_id` APIを叩き、指定ユーザのフォローを解除します。
+
+`Input command.: delete_users_following target_user_id:7080152`  
+
+usernameが指定された場合、事前に `GET /2/users/by/username/:username` APIを叩き、値があればidをセットします。こちらの方が使いやすいと思います。
+
+`Input command.: delete_users_following username:twitterjp`  
