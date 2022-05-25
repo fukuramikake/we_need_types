@@ -1306,7 +1306,7 @@ class V1Status {
 
 class V1Entities {
     [V1Hashtag[]]$hashtags
-    [string[]]$symbols
+    [V1Symbol[]]$symbols
     [V1UserMention[]]$user_mentions
     [V1Url[]]$urls
 }
@@ -1415,6 +1415,10 @@ class V1Hashtag {
     [Int32[]]$indices
 }
 
+class V1Symbol {
+    [string]$text
+    [Int32[]]$indices
+}
 
 class V1ErrorResponse {
     [V1ErrorResponseEntity[]]$errors
