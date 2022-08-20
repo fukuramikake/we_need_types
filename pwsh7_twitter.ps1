@@ -90,6 +90,7 @@ function Login([Request]$request) {
             else {
                 <# Success #>
                 $request.OauthTokenSecret = $authinfo["oauth_token_secret"]
+                $request.UserId = $authinfo["user_id"]
                 Write-Host $oauth_callback_confirmed
                 return $authinfo
             }
@@ -403,6 +404,25 @@ Class Command {
 
             }
 
+            "timelines" {
+                $result = $api.Timelines($commands)
+                [System.Net.HttpStatusCode]$statusCode = $result["statusCode"]
+                $json = $result["body"]
+    
+                if ($statusCode -eq [System.Net.HttpStatusCode]::OK) {
+                    [Timeline]$timeline = [System.Text.Json.JsonSerializer]::Deserialize($json, [Timeline], [Helper]::GetJsonSerializerOptions())
+                    if ($null -ne $timeline.data) {                
+                        [Display]::DisplayTimeline($timeline)
+                    }
+                    else {
+                        [Display]::DisplayErrors($timeline.errors)
+                    }
+                }
+                else {
+                    [Display]::DisplayError($statusCode, $json)
+                }
+            }
+
             default {
                 Write-Host "input valid command. ex) > home"
             }
@@ -420,6 +440,7 @@ class Request {
     [string]$AccessTokenUrl
     [System.Net.Http.HttpClient]$Client
     [string]$OauthTokenSecret
+    [string]$UserId
 
     Request(
         [string]$apiKey,
@@ -436,6 +457,7 @@ class Request {
         $this.AccessTokenUrl = $accessTokenUrl
         $this.Client = $client
         $this.OauthTokenSecret = $null
+        $this.UserId = $null
     }
 
     [System.String] UrlEncode([string]$str) {
@@ -1163,6 +1185,53 @@ class TwitterApi {
         return $this.Request.DeleteRequest([Endpoint]::users + "/" + $this.UserId + "/following/" + $target_user_id, $this.AuthParams())
     }
 
+    [Hashtable] Timelines([string[]]$commands) {
+        $params = @{
+            "expansions"   = "attachments.media_keys,attachments.poll_ids,entities.mentions.username,referenced_tweets.id,referenced_tweets.id.author_id,geo.place_id,in_reply_to_user_id,author_id";
+            "media.fields" = "type,duration_ms,media_key,height,preview_image_url,url,alt_text,width,public_metrics";
+            "place.fields" = "contained_within,name,place_type,country,country_code,full_name,geo,id";
+            "poll.fields"  = "voting_status,options,end_datetime,id,duration_minutes";
+            "tweet.fields" = "attachments,author_id,context_annotations,conversation_id,lang,in_reply_to_user_id,id,geo,entities,created_at,possibly_sensitive,withheld,text,source,referenced_tweets,public_metrics";
+            "user.fields"  = "created_at,description,pinned_tweet_id,username,verified,withheld,protected,id,entities,profile_image_url,location,public_metrics,name,url";
+        }
+        [string]$id = $null
+        if ($commands.Length -gt 1) {
+            for ($index = 1; $index -lt $commands.Length; $index++) {
+                $p = $commands[$index].Split(":", [StringSplitOptions]::RemoveEmptyEntries)
+                if ($p.Length -eq 2) {
+                    switch (([string]$p[0]).ToLower()) {
+                        "id" {
+                            $id = $p[1]
+                        }
+                        "max_results" {
+                            $i = $p[1] -as [Int64]
+                            if ($i) {
+                                $params["max_results"] = $i
+                            }
+                        }
+                        "username" {
+                            $result = $this.Request.GetRequest([Endpoint]::byUsername + "/" + $p[1], $this.AuthParams(), @{})
+                            if ($result["statusCode"] -eq [System.Net.HttpStatusCode]::OK) {
+                                [UsersResponse]$user = [System.Text.Json.JsonSerializer]::Deserialize($result["body"], [UsersResponse], [Helper]::GetJsonSerializerOptions())
+                                if ($null -ne $user.data) {                
+                                    $id = $user.data.id
+                                }
+                            }
+                        }
+                        default {
+                            $params[[string]$p] = $p[1]
+                        }
+                    }
+                }
+            }
+        }
+        # ToDo: 未指定の場合は自分のIDを付ける
+        if ($null -eq $id -or  $id -eq "") {
+            $id = $this.Request.UserId
+        }
+        return $this.Request.GetRequest([Endpoint]::users + "/" + $id + "/timelines/reverse_chronological" , $this.AuthParams(), $params)
+    }
+
 }
 
 class Display {
@@ -1306,7 +1375,7 @@ class V1Status {
 
 class V1Entities {
     [V1Hashtag[]]$hashtags
-    [string[]]$symbols
+    [V1Symbol[]]$symbols
     [V1UserMention[]]$user_mentions
     [V1Url[]]$urls
 }
@@ -1415,6 +1484,10 @@ class V1Hashtag {
     [Int32[]]$indices
 }
 
+class V1Symbol {
+    [string]$text
+    [Int32[]]$indices
+}
 
 class V1ErrorResponse {
     [V1ErrorResponseEntity[]]$errors
