@@ -1270,7 +1270,12 @@ class Display {
                 Write-Host($referencedTweet.type + ":" + $referencedTweet.id)  -ForegroundColor DarkGray
             }  
         }
-        Write-Host($tweet.data.created_at.LocalDateTime.ToString() + " from " + $tweet.data.source + " id:" + $tweet.data.id) -ForegroundColor DarkGray
+        if ($null -ne $tweet.data.source) {
+            Write-Host($tweet.data.created_at.LocalDateTime.ToString() + " from " + $tweet.data.source + " id:" + $tweet.data.id) -ForegroundColor DarkGray
+        }
+        else {
+            Write-Host($tweet.data.created_at.LocalDateTime.ToString() + " id:" + $tweet.data.id) -ForegroundColor DarkGray
+        }
     }
 
     static [void] DisplayUser([User]$user) {
@@ -1301,12 +1306,22 @@ class Display {
                         + " ReTweeted by " + $user.data.name + " @" + $user.data.username
                 ) -ForegroundColor DarkYellow
                 Write-Host([Display]::UnEscape($referenceTweet.text)) -ForegroundColor DarkGreen
-                Write-Host($referenceTweet.created_at.LocalDateTime.ToString() + " from " + $referenceTweet.source + " id:" + $referenceTweet.id) -ForegroundColor DarkGray
+                if ($null -ne $referenceTweet.source) {
+                    Write-Host($referenceTweet.created_at.LocalDateTime.ToString() + " from " + $referenceTweet.source + " id:" + $referenceTweet.id) -ForegroundColor DarkGray
+                }
+                else {
+                    Write-Host($referenceTweet.created_at.LocalDateTime.ToString() + " id:" + $referenceTweet.id) -ForegroundColor DarkGray
+                }
             }
             else {
                 Write-Host($user.name + " @" + $user.username) -ForegroundColor Cyan
                 Write-Host([Display]::UnEscape($datum.text)) -ForegroundColor White
-                Write-Host($datum.created_at.LocalDateTime.ToString() + " from " + $datum.source + " id:" + $datum.id) -ForegroundColor DarkGray
+                if ($null -ne $datum.source) {
+                    Write-Host($datum.created_at.LocalDateTime.ToString() + " from " + $datum.source + " id:" + $datum.id) -ForegroundColor DarkGray
+                }
+                else {
+                    Write-Host($datum.created_at.LocalDateTime.ToString() + " id:" + $datum.id) -ForegroundColor DarkGray
+                }
             }
         }
     }
