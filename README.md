@@ -41,7 +41,7 @@ PowerShell 7 以降で、`pwsh7_twitter.ps1` を実行します。
 
 ### 対応しているAPI呼び出しコマンド
 
-#### **timelinse**
+#### **timelines**
 
 `GET /2/users/:id/timelines/reverse_chronological` APIを叩き、タイムラインを表示します。
 
@@ -49,7 +49,7 @@ PowerShell 7 以降で、`pwsh7_twitter.ps1` を実行します。
 
 #### **home**
 
-Twitter API v1 の `GET statuses/home_timeline` APIを叩き、タイムラインを表示します。本API以外はすべてTwitter API v2を利用しています。
+Twitter API v1 の `GET statuses/home_timeline` APIを叩き、タイムラインを表示します。本API以外はすべてTwitter API v2を利用しています。timelinesコマンドよりこっちの方が良いと思います。
 
 `Input command.: home count:100`
 
