@@ -2,7 +2,7 @@
 
 PowerShell 7 で Twitter v2 API を叩いたりするやつです。  
 前に作ってたやつは .NET Core 以降、System.Web.Script.Serialization が使えなくなったとか色々あって作り直しました。  
-OAuth 2.0 への対応は手元では実装の確認はできてるのですが、Home Timeline API がまだ v2 に来ていないため、現状では OAuth 1.0a を利用しています。
+OAuth 2.0 では自分のタイムラインを取得することができないため、PIN認証を利用する OAuth 1.0a を利用しています。
 
 ## 利用方法
 
@@ -41,9 +41,15 @@ PowerShell 7 以降で、`pwsh7_twitter.ps1` を実行します。
 
 ### 対応しているAPI呼び出しコマンド
 
+#### **timelinse**
+
+`GET /2/users/:id/timelines/reverse_chronological` APIを叩き、タイムラインを表示します。
+
+`Input command.: timelines max_results:100`
+
 #### **home**
 
-Twitter API v1 の `GET statuses/home_timeline` APIを叩き、タイムラインを表示します。本API以外はすべてTwitter API v2を利用しています。(Home Timeline APIはまだv2用が公開されていないため)
+Twitter API v1 の `GET statuses/home_timeline` APIを叩き、タイムラインを表示します。本API以外はすべてTwitter API v2を利用しています。
 
 `Input command.: home count:100`
 

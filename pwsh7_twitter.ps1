@@ -1303,7 +1303,7 @@ class Display {
                 [User]$referenceUser = [System.Linq.Enumerable]::FirstOrDefault($users, [Func[User, bool]] { param($u) $u.id -eq $referenceTweet.author_id }) 
                 Write-Host(
                     $referenceUser.name + " @" + $referenceUser.username `
-                        + " ReTweeted by " + $user.data.name + " @" + $user.data.username
+                        + " ReTweeted by " + $user.name + " @" + $user.username
                 ) -ForegroundColor DarkYellow
                 Write-Host([Display]::UnEscape($referenceTweet.text)) -ForegroundColor DarkGreen
                 if ($null -ne $referenceTweet.source) {
