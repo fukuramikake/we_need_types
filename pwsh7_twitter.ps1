@@ -1225,7 +1225,7 @@ class TwitterApi {
                 }
             }
         }
-        # ToDo: 未指定の場合は自分のIDを付ける
+        # 未指定の場合は自分のIDを付ける
         if ($null -eq $id -or  $id -eq "") {
             $id = $this.Request.UserId
         }
